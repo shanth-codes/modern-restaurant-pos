@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Modern Restaurant — Fine South Indian Dining | Madurai</title>
+  <link rel="icon" href="images/logo2.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="home-body">
+
+<!-- TOP NAV -->
+<nav class="home-nav" id="homeNav">
+  <div class="nav-wordmark">The <span>Modern</span> Restaurant</div>
+  <div class="nav-right">
+    <a href="#menu" class="nav-link">Menu</a>
+    <a href="#about" class="nav-link">About</a>
+    <button class="nav-track-btn" onclick="openTrackerModal()">Track Order 📍</button>
+    <button class="nav-cart-btn" onclick="toggleCartDrawer()">
+      <span>Cart</span>
+      <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+    <a href="login.html" class="nav-signin">Staff Portal</a>
+  </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero" id="home">
+  <div class="hero-fallback"></div>
+  <div class="hero-bg" id="heroBg" style="background-image:url('images/bg-home.jpg')"></div>
+  <div class="hero-content">
+    <p class="hero-kicker">Pure Vegetarian · Madurai, Tamil Nadu</p>
+    <h1 class="hero-h1">South Indian<br><em>cuisine,</em><br>refined.</h1>
+    <p class="hero-sub">Hand-crafted classics rooted in heritage. Every dish prepared fresh each morning with stone-ground batters, pure cow ghee, and farm-fresh spices.</p>
+    <div class="hero-ctas">
+      <a href="#menu" class="cta-primary">
+        Explore Menu
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="#about" class="cta-ghost">Our Story</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="sb-item"><span class="sb-num">12+</span><span class="sb-lbl">Years of Craft</span></div>
+  <div class="sb-item"><span class="sb-num">100%</span><span class="sb-lbl">Pure Vegetarian</span></div>
+  <div class="sb-item"><span class="sb-num">4.9★</span><span class="sb-lbl">Guest Rating</span></div>
+  <div class="sb-item"><span class="sb-num">50k+</span><span class="sb-lbl">Happy Diners</span></div>
+</div>
+
+<!-- MENU SECTION -->
+<section class="menu-strip" id="menu">
+  <div class="strip-head">
+    <div>
+      <p class="hero-kicker" style="margin-bottom:0.5rem">Curated Selection</p>
+      <h2 class="strip-title">Our <em>Menu</em></h2>
+    </div>
+    <div class="strip-filters">
+      <button class="sf-btn on" data-f="all">All Items</button>
+      <button class="sf-btn" data-f="breakfast">Breakfast</button>
+      <button class="sf-btn" data-f="mains">Mains</button>
+      <button class="sf-btn" data-f="beverages">Beverages</button>
+    </div>
+  </div>
+
+  <!-- LIVE MENU SEARCH BAR -->
+  <div class="menu-search-bar">
+    <div class="ms-wrap">
+      <span class="ms-icon">🔍</span>
+      <input type="text" class="ms-input" id="customerSearchInput" placeholder="Search dishes (e.g. Dosa, Coffee, Pongal)..." oninput="renderCustomerMenu(currentCategoryFilter)">
+    </div>
+  </div>
+
+  <div class="menu-cards" id="menuCards"></div>
+</section>
+
+<!-- ABOUT SECTION -->
+<section class="about-split" id="about">
+  <div class="about-img">
+    <div style="position:absolute;inset:0;background:url('images/bg-login.jpeg') center/cover no-repeat;filter:contrast(1.1)"></div>
+  </div>
+  <div class="about-text">
+    <p class="about-label">Our Heritage &amp; Philosophy</p>
+    <h2 class="about-h2">Honest food,<br><em>honestly prepared.</em></h2>
+    <p class="about-p">No artificial colors, no preservatives, and no compromises. Every plate served at The Modern Restaurant represents three generations of authentic Madurai culinary mastery.</p>
+    <div class="about-facts">
+      <div class="about-fact"><div class="about-fact-dot"></div><span><strong>Sourced daily</strong> from local agricultural farms around Madurai</span></div>
+      <div class="about-fact"><div class="about-fact-dot"></div><span><strong>Traditional stone-ground</strong> batters fermented naturally overnight</span></div>
+      <div class="about-fact"><div class="about-fact-dot"></div><span><strong>Degree Filter Coffee</strong> brewed fresh in classic brass tumblers</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="home-footer">
+  <div class="hf-brand">The Modern Restaurant</div>
+  <div class="hf-copy">© 2026 · Madurai, Tamil Nadu · All Rights Reserved</div>
+  <div class="hf-staff"><button class="nav-track-btn" onclick="openTrackerModal()">Track Order 📍</button> · Staff Portal: <a href="login.html">Sign in →</a></div>
+</footer>
+
+<!-- CUSTOMER CART DRAWER -->
+<div class="cd-overlay" id="cartOverlay" onclick="toggleCartDrawer()">
+  <div class="cart-drawer" onclick="event.stopPropagation()">
+    <div class="cd-head">
+      <div class="cd-title">Your Order</div>
+      <button class="cd-close" onclick="toggleCartDrawer()">✕</button>
+    </div>
+    
+    <!-- Order Type & Table Selection -->
+    <div style="padding: 1rem 1.5rem; background: var(--pos-bg); border-bottom: 1px solid var(--pos-border); display: flex; gap: 0.75rem; flex-direction: column;">
+      <div style="display:flex; gap:0.5rem;">
+        <button class="pay-pill active" id="orderTypeTakeaway" onclick="setCustomerOrderType('Takeaway')">Takeaway</button>
+        <button class="pay-pill" id="orderTypeDineIn" onclick="setCustomerOrderType('Dine-in')">Dine-in</button>
+      </div>
+      <div id="customerTableSelectWrap" class="hidden">
+        <select class="im-select" id="customerTableSelect" style="width:100%">
+          <option value="1">Table 1 (2 Seats)</option>
+          <option value="2">Table 2 (2 Seats)</option>
+          <option value="3">Table 3 (4 Seats)</option>
+          <option value="4">Table 4 (4 Seats)</option>
+          <option value="5">Table 5 (6 Seats)</option>
+          <option value="6">Table 6 (6 Seats)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cd-body" id="cartItemsList">
+      <!-- Items dynamically populated -->
+    </div>
+    <div class="cd-foot" id="cartFooter">
+      <div class="cd-total-row">
+        <span>Total Amount</span>
+        <span class="cd-total-price" id="cartTotalVal">₹0</span>
+      </div>
+      <button class="cd-checkout-btn" onclick="placeCustomerOrder()">Place Order &amp; Pay</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE ORDER TRACKER MODAL -->
+<div class="modal-overlay" id="trackerModal">
+  <div class="ot-modal" onclick="event.stopPropagation()">
+    <div class="ot-head">
+      <span class="ot-title">Live Order <em>Tracker</em></span>
+      <button class="im-close" onclick="closeTrackerModal()">✕</button>
+    </div>
+    <div class="ot-search-row">
+      <input type="number" class="ot-input" id="trackerTokenInput" placeholder="Enter Token # (e.g. 101)">
+      <button class="ot-btn" onclick="trackCustomerOrder()">Track Status</button>
+    </div>
+    <div id="trackerResultArea">
+      <div style="text-align:center; padding:2rem; color:var(--pos-sub)">Enter your order token number above to track live preparation status.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST STACK -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="script.js"></script>
+<script>
+// Nav Scroll stuck effect
+const nav = document.getElementById('homeNav');
+window.addEventListener('scroll', () => nav.classList.toggle('stuck', window.scrollY > 40));
+
+// Parallax hero background
+const heroBg = document.getElementById('heroBg');
+if (heroBg) {
+  window.addEventListener('scroll', () => {
+    heroBg.style.transform = `scale(1.05) translateY(${window.scrollY * 0.2}px)`;
+  });
+}
+
+// Load menu on page load
+document.addEventListener('DOMContentLoaded', () => {
+  renderCustomerMenu('all');
+});
+
+document.querySelectorAll('.sf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    renderCustomerMenu(btn.dataset.f);
+  });
+});
+</script>
+</body>
+</html>

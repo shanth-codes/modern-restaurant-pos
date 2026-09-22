@@ -58,7 +58,23 @@ function writeDB(data) {
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
+
+function serveStaticPage(res, fileName) {
+  const publicFile = path.join(__dirname, 'public', fileName);
+  if (fs.existsSync(publicFile)) return res.sendFile(publicFile);
+  const rootFile = path.join(__dirname, fileName);
+  if (fs.existsSync(rootFile)) return res.sendFile(rootFile);
+  res.status(404).send('Page not found');
+}
+
+app.get('/', (req, res) => serveStaticPage(res, 'index.html'));
+app.get('/index.html', (req, res) => serveStaticPage(res, 'index.html'));
+app.get('/pos.html', (req, res) => serveStaticPage(res, 'pos.html'));
+app.get('/login.html', (req, res) => serveStaticPage(res, 'login.html'));
+app.get('/pos', (req, res) => res.redirect('/pos.html'));
+app.get('/login', (req, res) => res.redirect('/login.html'));
 
 const apiRouter = express.Router();
 

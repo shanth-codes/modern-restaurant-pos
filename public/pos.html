@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS System — The Modern Restaurant</title>
+  <link rel="icon" href="images/logo2.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="pos-body">
+
+<!-- TOP BAR -->
+<div class="pos-topbar">
+  <div class="pos-topbar-brand">The <span>Modern</span> Restaurant</div>
+  <div class="pos-tabs">
+    <button class="pos-tab active" data-tab="cashier" onclick="switchPosTab('cashier')">Cashier</button>
+    <button class="pos-tab" data-tab="tables" onclick="switchPosTab('tables')">Tables</button>
+    <button class="pos-tab" data-tab="orders" onclick="switchPosTab('orders')">Live Orders</button>
+    <button class="pos-tab" data-tab="kitchen" onclick="switchPosTab('kitchen')">Kitchen KDS</button>
+    <button class="pos-tab" data-tab="menu" onclick="switchPosTab('menu')">Menu Manager</button>
+    <button class="pos-tab" data-tab="analytics" onclick="switchPosTab('analytics')">Analytics 📊</button>
+  </div>
+  <div class="pos-clock" id="posClock">00:00:00</div>
+  <a href="login.html" class="pos-logout" onclick="localStorage.removeItem('tmr_user')">Sign Out</a>
+</div>
+
+<!-- ANALYTICS SUMMARY BAR -->
+<div class="pos-analytics-bar">
+  <div class="ab-card">
+    <div><div class="ab-lbl">Today's Revenue</div><div class="ab-val" id="abRevenue">₹0</div></div>
+  </div>
+  <div class="ab-card">
+    <div><div class="ab-lbl">Total Orders</div><div class="ab-val" id="abOrders">0</div></div>
+  </div>
+  <div class="ab-card">
+    <div><div class="ab-lbl">Active Kitchen Orders</div><div class="ab-val" id="abActive">0</div></div>
+  </div>
+  <div class="ab-card">
+    <div><div class="ab-lbl">Tables Occupied</div><div class="ab-val" id="abOccupied">0 / 12</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ 1. CASHIER TAB ══════════════════ -->
+<div id="tab-cashier" class="cashier-layout">
+  <!-- LEFT: Menu Browser -->
+  <div class="menu-panel">
+    <div class="menu-panel-head">
+      <input class="mp-search" id="mpSearch" type="search" placeholder="Search menu items..." oninput="filterPosMenu()">
+      <button class="mp-cat on" data-c="all" onclick="setPosCategory('all', this)">All</button>
+      <button class="mp-cat" data-c="breakfast" onclick="setPosCategory('breakfast', this)">Breakfast</button>
+      <button class="mp-cat" data-c="mains" onclick="setPosCategory('mains', this)">Mains</button>
+      <button class="mp-cat" data-c="beverages" onclick="setPosCategory('beverages', this)">Beverages</button>
+    </div>
+    <div class="menu-grid" id="posMenuGrid">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+
+  <!-- RIGHT: Order Ticket -->
+  <div class="ticket-panel">
+    <div class="tp-head">
+      <span class="tp-title">Current Ticket</span>
+      <div class="tp-token-wrap">
+        <span class="tp-token-label">Token</span>
+        <div class="tp-token" id="tpToken">#101</div>
+      </div>
+      <button class="tp-new-btn" onclick="resetTicket()">New Ticket</button>
+    </div>
+    <div class="tp-server-row">
+      <span class="tp-server-label">Server</span>
+      <input class="tp-server-input" id="serverCode" maxlength="6" placeholder="Code (SRV01)">
+      <span class="tp-server-label">Table</span>
+      <select class="tp-table-select" id="tpTableSelect">
+        <option value="">Takeaway / None</option>
+        <option value="1">Table 1 (2 Seater)</option>
+        <option value="2">Table 2 (2 Seater)</option>
+        <option value="3">Table 3 (4 Seater)</option>
+        <option value="4">Table 4 (4 Seater)</option>
+        <option value="5">Table 5 (6 Seater)</option>
+        <option value="6">Table 6 (6 Seater)</option>
+        <option value="7">Table 7 (2 Seater)</option>
+        <option value="8">Table 8 (4 Seater)</option>
+        <option value="9">Table 9 (4 Seater)</option>
+        <option value="10">Table 10 (8 Seater)</option>
+        <option value="11">Table 11 (2 Seater)</option>
+        <option value="12">Table 12 (4 Seater)</option>
+      </select>
+    </div>
+
+    <!-- PAYMENT METHOD SELECTOR -->
+    <div class="tp-pay-row">
+      <button class="pay-pill active" id="payMethodCash" onclick="setPosPaymentMethod('Cash')">💵 Cash</button>
+      <button class="pay-pill" id="payMethodCard" onclick="setPosPaymentMethod('Card')">💳 Card</button>
+      <button class="pay-pill" id="payMethodUpi" onclick="setPosPaymentMethod('UPI')">📱 UPI</button>
+    </div>
+
+    <!-- CASH CHANGE CALCULATOR -->
+    <div class="tp-cash-calc" id="cashCalcPanel">
+      <span style="font-size:0.75rem; color:var(--pos-sub); text-transform:uppercase; font-weight:600">Tendered:</span>
+      <input type="number" class="tp-cash-input" id="tenderedAmount" placeholder="₹ Amount" oninput="calculatePosChange()">
+      <span style="font-size:0.75rem; color:var(--pos-sub); text-transform:uppercase; font-weight:600; margin-left:auto">Change:</span>
+      <span class="tp-change-val" id="posChangeVal">₹0</span>
+    </div>
+
+    <div class="tp-items" id="ticketItems">
+      <div class="tp-empty">
+        <div class="tp-empty-icon">🧾</div>
+        <div class="tp-empty-text">Select items from menu to start order</div>
+      </div>
+    </div>
+
+    <div class="tp-summary" id="ticketSummary">
+      <div class="ts-row"><span>Subtotal</span><span id="tsSubtotal">₹0</span></div>
+      <div class="ts-row"><span>CGST (2.5%)</span><span id="tsCgst">₹0</span></div>
+      <div class="ts-row"><span>SGST (2.5%)</span><span id="tsSgst">₹0</span></div>
+      <div class="tp-divider" style="height:1px;background:var(--pos-border);margin:0.5rem 0"></div>
+      <div class="ts-row">
+        <span class="ts-total-label">Total Payable</span>
+        <span class="ts-total-val" id="tsTotal">₹0</span>
+      </div>
+    </div>
+
+    <div class="tp-actions">
+      <button class="ta-primary" id="sendKitchenBtn" onclick="submitPosOrder(true)">Send to Kitchen</button>
+      <div class="ta-row">
+        <button class="ta-sec" id="billOnlyBtn" onclick="submitPosOrder(false)">Bill Only</button>
+        <button class="ta-sec ta-danger" onclick="resetTicket()">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ 2. TABLES TAB ══════════════════ -->
+<div id="tab-tables" class="table-layout hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="font-family:var(--r);font-size:2rem;color:#FFF">Dining Floor Management</h2>
+    <div style="display:flex;gap:1rem;font-size:0.8rem">
+      <span style="color:var(--go)">● Available</span>
+      <span style="color:var(--fire)">● Occupied</span>
+      <span style="color:var(--warn)">● Reserved</span>
+      <span style="color:var(--gold)">● Billing</span>
+    </div>
+  </div>
+  <div class="table-grid" id="tablesGrid">
+    <!-- Tables dynamically rendered -->
+  </div>
+</div>
+
+<!-- ══════════════════ 3. LIVE ORDERS TAB ══════════════════ -->
+<div id="tab-orders" class="hidden" style="flex:1;overflow-y:auto">
+  <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--pos-border);display:flex;align-items:center;justify-content:space-between;background:#0E121B">
+    <span style="font-size:0.8rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold)">Live &amp; Recent Orders</span>
+    <span style="font-size:0.8rem;color:var(--pos-sub)" id="ordersCountLbl">0 Orders</span>
+  </div>
+  <div class="orders-layout" id="ordersGrid">
+    <!-- Dynamic orders grid -->
+  </div>
+</div>
+
+<!-- ══════════════════ 4. KITCHEN KDS TAB ══════════════════ -->
+<div id="tab-kitchen" class="kitchen-layout hidden">
+  <div class="kitchen-header">
+    <div>
+      <span class="kh-title">Kitchen Display System (KDS)</span>
+      <span class="kh-count" id="kitchenCount" style="margin-left:1rem">0 Active Orders</span>
+    </div>
+    <button class="mmgr-add" style="background:var(--gold);color:#000;display:inline-flex;align-items:center;gap:0.5rem" onclick="playKitchenBell(); showToast('Kitchen Bell Rung 🔔', 'info')">
+      🔔 Test Kitchen Bell
+    </button>
+  </div>
+  <div class="kitchen-grid" id="kitchenGrid">
+    <!-- Kitchen tickets dynamically rendered -->
+  </div>
+</div>
+
+<!-- ══════════════════ 5. MENU MANAGER TAB ══════════════════ -->
+<div id="tab-menu" class="mmgr-layout hidden">
+  <div class="mmgr-bar">
+    <span class="mmgr-title">Menu Management</span>
+    <button class="mmgr-add" onclick="openItemModal()">+ Add New Item</button>
+  </div>
+  <div class="mmgr-table-wrap">
+    <table class="mmgr-table">
+      <thead>
+        <tr>
+          <th>Item Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Badge</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="mmgrBody">
+        <!-- Menu rows dynamically rendered -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════ 6. ANALYTICS & REPORTS TAB ══════════════════ -->
+<div id="tab-analytics" class="analytics-layout hidden">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="font-family:var(--r); font-size:2.2rem; color:#FFF">Executive Analytics <em>&amp; Insights</em></h2>
+    <span style="font-size:0.78rem; color:var(--gold); border:1px solid var(--gold); padding:0.35rem 0.85rem; border-radius:50px">Live Realtime Metrics</span>
+  </div>
+
+  <div class="analytics-hero-grid">
+    <div class="ah-card">
+      <div class="ah-lbl">Total Gross Revenue</div>
+      <div class="ah-val" id="anTotalRevenue">₹0</div>
+      <div class="ah-sub">▲ 14.2% vs last week</div>
+    </div>
+    <div class="ah-card">
+      <div class="ah-lbl">Average Ticket Value (AOV)</div>
+      <div class="ah-val" id="anAvgTicket">₹0</div>
+      <div class="ah-sub">Per order average</div>
+    </div>
+    <div class="ah-card">
+      <div class="ah-lbl">Total Orders Fulfilled</div>
+      <div class="ah-val" id="anTotalOrders">0</div>
+      <div class="ah-sub">Live total count</div>
+    </div>
+    <div class="ah-card">
+      <div class="ah-lbl">Total Items Prepared</div>
+      <div class="ah-val" id="anTotalItems">0</div>
+      <div class="ah-sub">Kitchen volume</div>
+    </div>
+  </div>
+
+  <div class="analytics-charts-grid">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Top 5 Best-Selling Dishes</div>
+          <div class="chart-subtitle">Item Quantity Sold</div>
+        </div>
+      </div>
+      <div class="bar-chart-container" id="topItemsChart">
+        <!-- Dynamic SVG Bar Columns -->
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Category Revenue</div>
+          <div class="chart-subtitle">Sales Share Breakdown</div>
+        </div>
+      </div>
+      <div class="cat-progress-list" id="catSalesList">
+        <!-- Dynamic Progress Bars -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THERMAL RECEIPT MODAL -->
+<div class="modal-overlay" id="billModal">
+  <div class="bill-modal">
+    <div class="bm-head">
+      <div class="bm-restaurant">The Modern Restaurant</div>
+      <div style="font-size:0.75rem;margin-top:0.2rem">Madurai, TN · Tel: +91 98765 43210</div>
+      <div class="bm-token-num" id="bmToken">#101</div>
+      <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2rem">Order Receipt</div>
+    </div>
+    <div class="bm-meta">
+      <div class="bm-meta-item"><span>Date/Time:</span><strong id="bmDate">—</strong></div>
+      <div class="bm-meta-item"><span>Server Code:</span><strong id="bmServer">APP</strong></div>
+      <div class="bm-meta-item"><span>Table/Type:</span><strong id="bmType">Takeaway</strong></div>
+    </div>
+    <div class="bm-items" id="bmItems">
+      <!-- Items -->
+    </div>
+    <div class="bm-totals">
+      <div class="bm-row"><span>Subtotal</span><span id="bmSub">₹0</span></div>
+      <div class="bm-row"><span>CGST (2.5%)</span><span id="bmCgst">₹0</span></div>
+      <div class="bm-row"><span>SGST (2.5%)</span><span id="bmSgst">₹0</span></div>
+      <div class="bm-grand"><div class="bm-row"><span>Grand Total</span><span id="bmTotal">₹0</span></div></div>
+    </div>
+    <div class="bm-thanks">Thank you for dining with us!</div>
+    <div class="bm-actions">
+      <button class="bm-print" onclick="window.print()">🖨 Print Receipt</button>
+      <button class="bm-close" onclick="closeBillModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="itemModal">
+  <div class="item-modal">
+    <div class="im-head">
+      <span class="im-title" id="imTitle">Add Item</span>
+      <button class="im-close" onclick="closeItemModal()">✕</button>
+    </div>
+    <div class="im-body">
+      <div class="im-group">
+        <label class="im-label">Item Name</label>
+        <input class="im-input" id="imName" placeholder="e.g. Special Ghee Dosa">
+      </div>
+      <div class="im-group">
+        <label class="im-label">Category</label>
+        <select class="im-select" id="imCat">
+          <option value="breakfast">Breakfast</option>
+          <option value="mains">Mains</option>
+          <option value="beverages">Beverages</option>
+        </select>
+      </div>
+      <div class="im-group">
+        <label class="im-label">Price (₹)</label>
+        <input class="im-input" id="imPrice" type="number" placeholder="100">
+      </div>
+      <div class="im-group">
+        <label class="im-label">Badge Tag (Optional)</label>
+        <input class="im-input" id="imBadge" placeholder="e.g. Best Seller">
+      </div>
+    </div>
+    <div class="im-foot">
+      <button class="im-cancel" onclick="closeItemModal()">Cancel</button>
+      <button class="im-save" onclick="saveMenuItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST STACK -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="script.js"></script>
+<script>
+// Start POS clocks and data sync on load
+document.addEventListener('DOMContentLoaded', () => {
+  initPosSystem();
+});
+</script>
+</body>
+</html>
