@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Portal — The Modern Restaurant</title>
+  <link rel="icon" href="images/logo2.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-body">
+
+<div class="login-left">
+  <div class="ll-bg"></div>
+  <div class="ll-content">
+    <div class="ll-logo">The <span>Modern</span> Restaurant</div>
+    <div>
+      <div class="ll-headline">Staff<br><em>portal.</em></div>
+      <p class="ll-sub">Point of Sale, Kitchen Display System &amp; Table Management for authorized personnel only.</p>
+    </div>
+    <div class="ll-access">
+      <div class="ll-badge">Location<span>Madurai, TN</span></div>
+      <div class="ll-badge">System<span>POS &amp; KDS v2.5</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="login-right">
+  <div class="lf-wrap">
+    <p class="lf-eyebrow">Staff Access Portal</p>
+    <h1 class="lf-title">Sign <em>in</em></h1>
+
+    <div class="lf-group">
+      <label class="lf-label" for="email">Email Address</label>
+      <input class="lf-input" type="email" id="email" placeholder="cashier@tmr.in" autocomplete="username">
+    </div>
+    <div class="lf-group">
+      <label class="lf-label" for="pass">Password</label>
+      <input class="lf-input" type="password" id="pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="lf-row">
+      <label class="lf-check">
+        <input type="checkbox" id="remember" checked>
+        <span style="font-size:0.78rem;color:var(--pos-sub);margin-left:0.4rem">Keep me signed in</span>
+      </label>
+      <a href="#" class="lf-forgot" onclick="alert('Demo Passwords:\nCashier: tmr123\nKitchen: kitchen1\nAdmin: admin123')">Need Help?</a>
+    </div>
+    <button class="lf-submit" id="loginBtn" onclick="handleLogin()">Sign In to Dashboard</button>
+    <div class="lf-err" id="loginErr">Invalid credentials. Please check email and password.</div>
+
+    <!-- Quick Demo Login Buttons -->
+    <div class="demo-logins">
+      <div class="demo-title">Quick Demo Login</div>
+      <div class="demo-pills">
+        <button class="demo-pill" onclick="quickFill('cashier@tmr.in','tmr123')">Cashier</button>
+        <button class="demo-pill" onclick="quickFill('kitchen@tmr.in','kitchen1')">Kitchen KDS</button>
+        <button class="demo-pill" onclick="quickFill('admin@tmr.in','admin123')">Admin Manager</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+function quickFill(email, pass) {
+  document.getElementById('email').value = email;
+  document.getElementById('pass').value = pass;
+  handleLogin();
+}
+
+async function handleLogin() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  const errEl = document.getElementById('loginErr');
+
+  if (!email || !pass) {
+    errEl.textContent = 'Please enter both email and password.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  try {
+    const res = await apiClient.login(email, pass);
+    if (res && res.success) {
+      errEl.classList.remove('show');
+      localStorage.setItem('tmr_user', JSON.stringify(res.user));
+      window.location.href = 'pos.html';
+    } else {
+      errEl.textContent = res.message || 'Invalid credentials.';
+      errEl.classList.add('show');
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.classList.add('show');
+  }
+}
+
+document.getElementById('pass').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pass').focus(); });
+</script>
+</body>
+</html>

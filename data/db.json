@@ -1,0 +1,71 @@
+{
+  "users": [
+    { "email": "cashier@tmr.in", "pass": "tmr123", "name": "Ramesh Kumar", "role": "cashier" },
+    { "email": "kitchen@tmr.in", "pass": "kitchen1", "name": "Chef Sundaram", "role": "kitchen" },
+    { "email": "admin@tmr.in", "pass": "admin123", "name": "Manager Ananth", "role": "admin" },
+    { "email": "a@a.com", "pass": "123", "name": "Quick Demo User", "role": "admin" }
+  ],
+  "menu": [
+    { "id": 1, "name": "Idly (2 pcs)", "category": "breakfast", "img": "idly.jpg", "desc": "Two soft steamed rice cakes served with classic Madurai sambar & 3 chutneys.", "price": 40, "badge": "Best Seller", "available": true },
+    { "id": 2, "name": "Crispy Medu Vada", "category": "breakfast", "img": "vada.jpg", "desc": "Crispy golden lentil doughnuts tempered with peppercorn & curry leaves.", "price": 50, "badge": null, "available": true },
+    { "id": 3, "name": "Ghee Ven Pongal", "category": "breakfast", "img": "pongal.jpg", "desc": "Soft fragrant rice & yellow moong porridge drizzled with pure cow ghee & cashews.", "price": 60, "badge": "Breakfast Special", "available": true },
+    { "id": 4, "name": "Madurai Masala Dosa", "category": "breakfast", "img": "masaladosa.jpg", "desc": "Crispy fermented crepe filled with aromatic spiced potato onion masala.", "price": 100, "badge": "Chef's Pick", "available": true },
+    { "id": 5, "name": "Ghee Roast Dosa", "category": "breakfast", "img": "Ghee Roast Dosa.jpg", "desc": "Extra golden-crisp cone dosa generously basted with farm-fresh ghee.", "price": 120, "badge": null, "available": true },
+    { "id": 6, "name": "Set Dosa (3 pcs)", "category": "breakfast", "img": "Set Dosa (3 pcs).jpg", "desc": "Three soft sponge dosas served with Vadacurry and coconut chutney.", "price": 90, "badge": null, "available": true },
+    { "id": 7, "name": "Poori Masala (2 pcs)", "category": "mains", "img": "Poori.jpg", "desc": "Fluffy puffed whole wheat breads accompanied by spiced potato sagu.", "price": 70, "badge": null, "available": true },
+    { "id": 8, "name": "Tangy Lemon Rice", "category": "mains", "img": "Lemon Rice.jpg", "desc": "Aromatic ponni rice tempered with fresh lemon juice, mustard seeds & roasted peanuts.", "price": 80, "badge": null, "available": true },
+    { "id": 9, "name": "Special Curd Rice", "category": "mains", "img": "Curd Rice.jpg", "desc": "Refreshing chilled curd rice garnished with pomegranate, carrot & raw mango pickle.", "price": 75, "badge": "Popular", "available": true },
+    { "id": 10, "name": "Degree Filter Coffee", "category": "beverages", "img": "Filter Coffee.jpg", "desc": "Authentic brass tumbler South Indian filter coffee brewed with chicory blend.", "price": 50, "badge": "Must Try", "available": true },
+    { "id": 11, "name": "Madurai Masala Chai", "category": "beverages", "img": "Masala Chai.jpg", "desc": "Steaming hot whole milk tea infused with cardamom, crushed ginger & cloves.", "price": 40, "badge": null, "available": true },
+    { "id": 12, "name": "Fresh Ginger Tea", "category": "beverages", "img": "Ginger Tea.jpg", "desc": "Warming golden herbal tea with pounded fresh ginger root & country sugar.", "price": 35, "badge": null, "available": true },
+    { "id": 13, "name": "Mint Green Tea", "category": "beverages", "img": "Green Tea.jpg", "desc": "Organic green tea brewed with fresh garden mint leaves & wild honey.", "price": 45, "badge": null, "available": true }
+  ],
+  "tables": [
+    { "id": 1, "name": "Table 1", "seats": 2, "status": "available", "currentToken": null },
+    { "id": 2, "name": "Table 2", "seats": 2, "status": "available", "currentToken": null },
+    { "id": 3, "name": "Table 3", "seats": 4, "status": "occupied", "currentToken": 101 },
+    { "id": 4, "name": "Table 4", "seats": 4, "status": "available", "currentToken": null },
+    { "id": 5, "name": "Table 5", "seats": 6, "status": "reserved", "currentToken": null },
+    { "id": 6, "name": "Table 6", "seats": 6, "status": "available", "currentToken": null },
+    { "id": 7, "name": "Table 7", "seats": 2, "status": "billing", "currentToken": 102 },
+    { "id": 8, "name": "Table 8", "seats": 4, "status": "available", "currentToken": null },
+    { "id": 9, "name": "Table 9", "seats": 4, "status": "available", "currentToken": null },
+    { "id": 10, "name": "Table 10", "seats": 8, "status": "available", "currentToken": null },
+    { "id": 11, "name": "Table 11", "seats": 2, "status": "available", "currentToken": null },
+    { "id": 12, "name": "Table 12", "seats": 4, "status": "available", "currentToken": null }
+  ],
+  "orders": [
+    {
+      "token": 101,
+      "tableId": 3,
+      "serverCode": "SRV04",
+      "type": "Dine-in",
+      "items": [
+        { "id": 4, "name": "Madurai Masala Dosa", "price": 100, "qty": 2 },
+        { "id": 10, "name": "Degree Filter Coffee", "price": 50, "qty": 2 }
+      ],
+      "subtotal": 300,
+      "cgst": 7.5,
+      "sgst": 7.5,
+      "total": 315,
+      "status": "cooking",
+      "createdAt": "2026-07-30T20:45:00.000Z"
+    },
+    {
+      "token": 102,
+      "tableId": 7,
+      "serverCode": "SRV01",
+      "type": "Dine-in",
+      "items": [
+        { "id": 3, "name": "Ghee Ven Pongal", "price": 60, "qty": 1 },
+        { "id": 1, "name": "Idly (2 pcs)", "price": 40, "qty": 2 }
+      ],
+      "subtotal": 140,
+      "cgst": 3.5,
+      "sgst": 3.5,
+      "total": 147,
+      "status": "ready",
+      "createdAt": "2026-07-30T21:00:00.000Z"
+    }
+  ]
+}
