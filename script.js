@@ -1,20 +1,10 @@
-/* ─── THE MODERN RESTAURANT — Instant Performance Script (v3.0) ─── */
+/* ─── THE MODERN RESTAURANT — Instant Performance Script (v3.1) ─── */
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http'))
+  ? `${window.location.origin}/api`
+  : 'http://localhost:3000/api';
+
 let isServerOnline = false;
-
-// Quick non-blocking server check on startup (80ms max)
-(async function checkServerStatus() {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 80);
-    const res = await fetch(`${API_BASE}/menu`, { signal: controller.signal });
-    clearTimeout(timer);
-    if (res.ok) isServerOnline = true;
-  } catch (e) {
-    isServerOnline = false;
-  }
-})();
 
 // ── LOCAL FALLBACK & IN-MEMORY STATE STORE ──
 const fallbackData = {
@@ -61,6 +51,74 @@ const fallbackData = {
   ]
 };
 
+// ── LOCAL STORAGE PERSISTENCE ──
+function loadLocalData() {
+  try {
+    const saved = localStorage.getItem('tmr_data');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed.menu) && parsed.menu.length) fallbackData.menu = parsed.menu;
+      if (Array.isArray(parsed.tables) && parsed.tables.length) fallbackData.tables = parsed.tables;
+      if (Array.isArray(parsed.orders) && parsed.orders.length) fallbackData.orders = parsed.orders;
+    }
+  } catch (e) {}
+}
+
+function saveLocalData() {
+  try {
+    localStorage.setItem('tmr_data', JSON.stringify({
+      menu: fallbackData.menu,
+      tables: fallbackData.tables,
+      orders: fallbackData.orders
+    }));
+  } catch (e) {}
+}
+
+loadLocalData();
+
+// ── SERVER STATUS CHECK & AUTO-SYNC ──
+async function syncWithServer() {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`${API_BASE}/menu`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      isServerOnline = true;
+      const remoteMenu = await res.json();
+      if (Array.isArray(remoteMenu) && remoteMenu.length > 0) {
+        fallbackData.menu = remoteMenu;
+      }
+      
+      const [tRes, oRes] = await Promise.all([
+        fetch(`${API_BASE}/tables`).catch(() => null),
+        fetch(`${API_BASE}/orders`).catch(() => null)
+      ]);
+      if (tRes && tRes.ok) {
+        const tables = await tRes.json();
+        if (Array.isArray(tables) && tables.length) fallbackData.tables = tables;
+      }
+      if (oRes && oRes.ok) {
+        const orders = await oRes.json();
+        if (Array.isArray(orders)) fallbackData.orders = orders;
+      }
+
+      saveLocalData();
+
+      if (typeof renderCustomerMenu === 'function' && document.getElementById('menuCards')) {
+        renderCustomerMenu(currentCategoryFilter);
+      }
+      if (typeof renderActiveTab === 'function') {
+        renderActiveTab();
+      }
+    }
+  } catch (e) {
+    isServerOnline = false;
+  }
+}
+
+syncWithServer();
+
 // ── UNIFIED API CLIENT ──
 const apiClient = {
   getMenu() {
@@ -71,6 +129,7 @@ const apiClient = {
   addMenuItem(item) {
     const newItem = { ...item, id: Date.now() };
     fallbackData.menu.push(newItem);
+    saveLocalData();
     if (isServerOnline) {
       fetch(`${API_BASE}/menu`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) }).catch(() => {});
     }
@@ -79,6 +138,7 @@ const apiClient = {
 
   deleteMenuItem(id) {
     fallbackData.menu = fallbackData.menu.filter(m => m.id !== id);
+    saveLocalData();
     if (isServerOnline) {
       fetch(`${API_BASE}/menu/${id}`, { method: 'DELETE' }).catch(() => {});
     }
@@ -95,6 +155,7 @@ const apiClient = {
     if (idx !== -1) {
       fallbackData.tables[idx].status = status;
       fallbackData.tables[idx].currentToken = currentToken;
+      saveLocalData();
     }
     if (isServerOnline) {
       fetch(`${API_BASE}/tables/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, currentToken }) }).catch(() => {});
@@ -145,6 +206,7 @@ const apiClient = {
         fallbackData.tables[tIdx].currentToken = nextToken;
       }
     }
+    saveLocalData();
 
     if (isServerOnline) {
       fetch(`${API_BASE}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderPayload) }).catch(() => {});
@@ -154,7 +216,20 @@ const apiClient = {
 
   updateOrderStatus(token, status) {
     const idx = fallbackData.orders.findIndex(o => o.token === token);
-    if (idx !== -1) fallbackData.orders[idx].status = status;
+    if (idx !== -1) {
+      fallbackData.orders[idx].status = status;
+      if (status === 'completed' || status === 'cancelled') {
+        const tableId = fallbackData.orders[idx].tableId;
+        if (tableId) {
+          const tIdx = fallbackData.tables.findIndex(t => t.id === tableId);
+          if (tIdx !== -1 && fallbackData.tables[tIdx].currentToken === token) {
+            fallbackData.tables[tIdx].status = 'available';
+            fallbackData.tables[tIdx].currentToken = null;
+          }
+        }
+      }
+      saveLocalData();
+    }
 
     if (isServerOnline) {
       fetch(`${API_BASE}/orders/${token}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }).catch(() => {});
@@ -197,9 +272,21 @@ const apiClient = {
     };
   },
 
-  login(email, password) {
+  async login(email, password) {
+    if (isServerOnline) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (data && data.success) return data;
+      } catch (e) {}
+    }
     if (password === 'tmr123' || password === 'kitchen1' || password === 'admin123' || password === '123') {
-      return Promise.resolve({ success: true, user: { email, name: email.split('@')[0], role: 'cashier' } });
+      const role = email.includes('kitchen') ? 'kitchen' : (email.includes('admin') ? 'admin' : 'cashier');
+      return Promise.resolve({ success: true, user: { email, name: email.split('@')[0], role } });
     }
     return Promise.resolve({ success: false, message: 'Invalid credentials' });
   }

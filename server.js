@@ -5,22 +5,40 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'data', 'db.json');
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
+// Determine writable DB path.
+// On Vercel / AWS Lambda, the root deployment directory is read-only.
+// We write to /tmp/db.json and seed it from data/db.json on first run.
+const SEED_DB_FILE = path.join(__dirname, 'data', 'db.json');
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.LAMBDA_TASK_ROOT;
+const DB_FILE = isServerless ? path.join('/tmp', 'db.json') : SEED_DB_FILE;
 
 // Utility to read DB
 function readDB() {
   try {
     if (!fs.existsSync(DB_FILE)) {
+      if (fs.existsSync(SEED_DB_FILE)) {
+        const seed = fs.readFileSync(SEED_DB_FILE, 'utf8');
+        try {
+          const dir = path.dirname(DB_FILE);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(DB_FILE, seed, 'utf8');
+        } catch (e) {
+          // If /tmp is not writable for any reason, continue with memory
+        }
+        return JSON.parse(seed);
+      }
       return { users: [], menu: [], tables: [], orders: [] };
     }
     const raw = fs.readFileSync(DB_FILE, 'utf8');
     return JSON.parse(raw);
   } catch (err) {
     console.error('Error reading database:', err);
+    try {
+      if (fs.existsSync(SEED_DB_FILE)) {
+        return JSON.parse(fs.readFileSync(SEED_DB_FILE, 'utf8'));
+      }
+    } catch (e) {}
     return { users: [], menu: [], tables: [], orders: [] };
   }
 }
@@ -38,8 +56,14 @@ function writeDB(data) {
   }
 }
 
+app.use(cors());
+app.use(express.json());
+app.use(express.static(__dirname));
+
+const apiRouter = express.Router();
+
 // ── AUTH ENDPOINTS ──
-app.post('/api/auth/login', (req, res) => {
+apiRouter.post('/auth/login', (req, res) => {
   const { email, password } = req.body;
   const db = readDB();
   const user = db.users.find(u => u.email.toLowerCase() === (email || '').toLowerCase() && u.pass === password);
@@ -51,12 +75,12 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ── MENU ENDPOINTS ──
-app.get('/api/menu', (req, res) => {
+apiRouter.get('/menu', (req, res) => {
   const db = readDB();
   res.json(db.menu || []);
 });
 
-app.post('/api/menu', (req, res) => {
+apiRouter.post('/menu', (req, res) => {
   const db = readDB();
   const newItem = {
     id: Date.now(),
@@ -73,7 +97,7 @@ app.post('/api/menu', (req, res) => {
   res.json({ success: true, item: newItem });
 });
 
-app.put('/api/menu/:id', (req, res) => {
+apiRouter.put('/menu/:id', (req, res) => {
   const db = readDB();
   const id = Number(req.params.id);
   const idx = db.menu.findIndex(m => m.id === id);
@@ -86,7 +110,7 @@ app.put('/api/menu/:id', (req, res) => {
   }
 });
 
-app.delete('/api/menu/:id', (req, res) => {
+apiRouter.delete('/menu/:id', (req, res) => {
   const db = readDB();
   const id = Number(req.params.id);
   db.menu = db.menu.filter(m => m.id !== id);
@@ -95,12 +119,12 @@ app.delete('/api/menu/:id', (req, res) => {
 });
 
 // ── TABLE ENDPOINTS ──
-app.get('/api/tables', (req, res) => {
+apiRouter.get('/tables', (req, res) => {
   const db = readDB();
   res.json(db.tables || []);
 });
 
-app.patch('/api/tables/:id', (req, res) => {
+apiRouter.patch('/tables/:id', (req, res) => {
   const db = readDB();
   const id = Number(req.params.id);
   const idx = db.tables.findIndex(t => t.id === id);
@@ -114,12 +138,12 @@ app.patch('/api/tables/:id', (req, res) => {
 });
 
 // ── ORDERS ENDPOINTS ──
-app.get('/api/orders', (req, res) => {
+apiRouter.get('/orders', (req, res) => {
   const db = readDB();
   res.json(db.orders || []);
 });
 
-app.get('/api/orders/:token', (req, res) => {
+apiRouter.get('/orders/:token', (req, res) => {
   const db = readDB();
   const token = Number(req.params.token);
   const order = (db.orders || []).find(o => o.token === token);
@@ -130,7 +154,7 @@ app.get('/api/orders/:token', (req, res) => {
   }
 });
 
-app.post('/api/orders', (req, res) => {
+apiRouter.post('/orders', (req, res) => {
   const db = readDB();
   const maxToken = db.orders.reduce((max, o) => Math.max(max, o.token || 100), 100);
   const nextToken = maxToken + 1;
@@ -171,7 +195,7 @@ app.post('/api/orders', (req, res) => {
   res.json({ success: true, order: newOrder });
 });
 
-app.patch('/api/orders/:token/status', (req, res) => {
+apiRouter.patch('/orders/:token/status', (req, res) => {
   const db = readDB();
   const token = Number(req.params.token);
   const { status } = req.body;
@@ -179,7 +203,7 @@ app.patch('/api/orders/:token/status', (req, res) => {
   if (idx !== -1) {
     db.orders[idx].status = status;
 
-    // Clear table status if order completed
+    // Clear table status if order completed or cancelled
     if (status === 'completed' || status === 'cancelled') {
       const tableId = db.orders[idx].tableId;
       if (tableId) {
@@ -199,7 +223,7 @@ app.patch('/api/orders/:token/status', (req, res) => {
 });
 
 // ── ANALYTICS ENDPOINT ──
-app.get('/api/analytics', (req, res) => {
+apiRouter.get('/analytics', (req, res) => {
   const db = readDB();
   const orders = db.orders || [];
   const menu = db.menu || [];
@@ -244,6 +268,21 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`The Modern Restaurant server running at http://localhost:${PORT}`);
+// Health check endpoint
+apiRouter.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Mount routes on both /api and / so rewrites work seamlessly
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
+// Start server if run directly (local node server.js)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`The Modern Restaurant server running at http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless function
+module.exports = app;
